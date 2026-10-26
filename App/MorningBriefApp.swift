@@ -43,6 +43,7 @@ final class MenuBarAgent: NSObject, NSApplicationDelegate, NSMenuDelegate {
         add("Sign in with GitHub", action: #selector(signInGitHub), to: menu)
         add("Cancel sign-in", action: #selector(cancelSignIn), to: menu)
         add("Refresh Calendar", action: #selector(refreshCalendar), to: menu)
+        add("Refresh sources", action: #selector(refreshSources), to: menu)
         add("Open config…", action: #selector(openConfig), to: menu)
         add("Reload config", action: #selector(reload), to: menu)
         add("Open data folder", action: #selector(openDataFolder), to: menu)
@@ -95,6 +96,29 @@ final class MenuBarAgent: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func menuWillOpen(_ menu: NSMenu) { loadConfig() }
 
     @objc private func reload() { loadConfig() }
+
+    private func syncSources() async -> SyncOutcome {
+        guard let store, let config else { return await SyncCoordinator.run([]) }
+        let googleToken = try? await google.accessToken()
+        let githubToken = try? await github.accessToken()
+        let googleAPI = API(token: googleToken ?? "")
+        let githubAPI = API(token: githubToken ?? "")
+        let attachments = Set((try? store.records(source: .calendar))?.flatMap(\.attachmentIDs) ?? [])
+        var jobs: [SyncJob] = []
+        if config.sources.calendar { jobs.append(SyncJob(.calendar) { guard googleToken != nil else { throw AuthError.signInAgain }; try await CalendarSync(api: googleAPI, store: store).sync() }) }
+        if config.sources.gmail { jobs.append(SyncJob(.gmail) { guard googleToken != nil else { throw AuthError.signInAgain }; try await GmailSync(api: googleAPI, store: store).sync(excluded: config.gmail.excludeCategories, ignore: config.gmail.ignore) }) }
+        if config.sources.drive { jobs.append(SyncJob(.drive) { guard googleToken != nil else { throw AuthError.signInAgain }; try await DriveSync(api: googleAPI, store: store).sync(attachments: attachments) }) }
+        if config.sources.github { jobs.append(SyncJob(.github) { guard githubToken != nil else { throw AuthError.signInAgain }; try await GitHubSync(api: githubAPI, store: store).sync() }) }
+        return await SyncCoordinator.run(jobs)
+    }
+    @objc private func refreshSources() {
+        loadConfig()
+        Task {
+            status.title = "Syncing sources"
+            let result = await syncSources()
+            status.title = google.needsSignIn ? "Sign in again" : (result.failed.isEmpty ? "Sources synced" : "Some sources could not sync. Tap to retry.")
+        }
+    }
 
     @objc private func refreshCalendar() {
         guard let store else { return }

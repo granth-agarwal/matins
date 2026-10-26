@@ -31,3 +31,13 @@ Fallback: the menu currently syncs the primary calendar; the engine accepts any 
 Manual checks: credentialed incremental refresh and recurring-event cases in TESTING.md.
 
 Validation: 9 tests passed, including page failure leaving no rows or checkpoint and 410 recovery. Development bundle build passed before commit.
+
+## Milestone 4
+
+Implemented: Gmail history with 404 recovery and category filtering, MIME body normalization, Drive changes and document export, GitHub notifications with ETag/since plus paginated review and assignment searches. All checkpoints commit transactionally. Parallel coordination isolates failed sources. Added source-resume and partial-failure tests.
+
+Fallbacks: optional Chat remains disabled. Drive has no universal Meet-note marker, so name matching plus calendar attachment IDs determines relevance; non-Google-document attachments retain metadata only. Newly discovered Calendar attachments become eligible on the next sync because the sources run in parallel. GitHub private repository search stays excluded for scope safety. Gmail VIP ranking is deferred to deterministic brief ordering; ignore/category filters are implemented.
+
+Manual checks: real source permissions, quota/offline errors, incremental edits and attachment detection in TESTING.md.
+
+Validation: 15 tests passed; development app bundle built successfully.

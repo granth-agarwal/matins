@@ -23,3 +23,12 @@
 - [ ] Refresh again and verify the saved sync token advances using incremental changes.
 - [ ] Move, decline and cancel events, including a recurring exception; refresh and compare.
 - [ ] Check all-day events across a timezone change and DST boundary.
+
+## 4. Other sources
+
+- [ ] Refresh all sources twice; confirm Gmail history, Drive token and GitHub checkpoint advance.
+- [ ] Add then delete a message and meeting note; verify incremental changes.
+- [ ] Verify promotions, social, ignored senders and trashed documents are excluded.
+- [ ] Disable network or revoke one service permission; confirm others finish and the failure remains visible.
+- [ ] Verify GitHub review requests and assignments in accessible repositories.
+- [ ] Check Drive note matching and Calendar attachments, including a newly attached document on the next run.
