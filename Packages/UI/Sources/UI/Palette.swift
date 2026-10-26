@@ -3,6 +3,9 @@ import SwiftUI
 
 public struct BriefPalette: Sendable {
     public let name, ground, glow1, glow2, accent: String
+    public init(name: String, ground: String, glow1: String, glow2: String, accent: String) {
+        self.name = name; self.ground = ground; self.glow1 = glow1; self.glow2 = glow2; self.accent = accent
+    }
     public static let defaults: [BriefPalette] = [
         .init(name: "Forest", ground: "1C2A19", glow1: "46663B", glow2: "6E4B2A", accent: "F7EA1B"),
         .init(name: "Dusk indigo", ground: "1B2038", glow1: "3C4A7A", glow2: "7A5C8C", accent: "F4E3B5"),
@@ -27,6 +30,18 @@ public struct BriefPalette: Sendable {
     }
     public static func contrast(_ a: String, _ b: String) -> Double {
         let x = luminance(a), y = luminance(b); return (max(x, y) + 0.05) / (min(x, y) + 0.05)
+    }
+    public func heroBackground(shade: Double) -> String {
+        let values = [ground, glow1, glow2].map { Int($0.replacingOccurrences(of: "#", with: ""), radix: 16) ?? 0 }
+        let channels = [16, 8, 0].map { shift -> Int in
+            Int(Double(values.map { ($0 >> shift) & 255 }.max() ?? 0) * (1 - shade))
+        }
+        return String(format: "%02X%02X%02X", channels[0], channels[1], channels[2])
+    }
+    public var heroShade: Double {
+        var shade = 0.25
+        while shade < 0.95 && Self.contrast(accent, heroBackground(shade: shade)) < 3 { shade += 0.05 }
+        return shade
     }
 }
 extension Color {

@@ -26,12 +26,12 @@ public struct GmailSync: Sendable {
     struct Message: Decodable, Sendable {
         let id, threadId: String; let snippet, internalDate: String?; let labelIds: [String]?; let payload: Part?
     }
-    public func sync(account: String = "google", excluded: [String] = ["promotions", "social"], ignore: [String] = []) async throws {
+    public func sync(account: String = "google", excluded: [String] = ["promotions", "social"], ignore: [String] = [], vip: [String] = []) async throws {
         let checkpoint = try store.checkpoint(account: account, source: .gmail)
-        do { try await fetch(account: account, checkpoint: checkpoint, excluded: excluded, ignore: ignore) }
-        catch SyncError.status(404) { try await fetch(account: account, checkpoint: nil, excluded: excluded, ignore: ignore) }
+        do { try await fetch(account: account, checkpoint: checkpoint, excluded: excluded, ignore: ignore, vip: vip) }
+        catch SyncError.status(404) { try await fetch(account: account, checkpoint: nil, excluded: excluded, ignore: ignore, vip: vip) }
     }
-    private func fetch(account: String, checkpoint: String?, excluded: [String], ignore: [String]) async throws {
+    private func fetch(account: String, checkpoint: String?, excluded: [String], ignore: [String], vip: [String]) async throws {
         struct Profile: Decodable, Sendable { let historyId: String }
         struct Page: Decodable, Sendable { let messages: [ID]?; let nextPageToken: String? }
         struct HistoryPage: Decodable, Sendable {
@@ -81,7 +81,8 @@ public struct GmailSync: Sendable {
                 records.append(SourceRecord(id: id, accountID: account, source: .gmail, title: title,
                     body: TextNormalizer.clean(message.payload?.text.isEmpty == false ? message.payload!.text : (message.snippet ?? "")),
                     url: "https://mail.google.com/mail/u/0/#all/" + message.threadId,
-                    updated: Date(timeIntervalSince1970: (Double(message.internalDate ?? "") ?? 0) / 1000), isOpen: labels.contains("INBOX")))
+                    updated: Date(timeIntervalSince1970: (Double(message.internalDate ?? "") ?? 0) / 1000), isOpen: labels.contains("INBOX"),
+                    person: sender.isEmpty ? nil : sender, rank: vip.contains(where: { sender.localizedCaseInsensitiveContains($0) }) ? 1 : nil))
             } catch SyncError.status(404) { removed.insert(id) }
         }
         try store.commit(account: account, source: .gmail, records: records, deleted: Array(removed), checkpoint: final, replace: checkpoint == nil)

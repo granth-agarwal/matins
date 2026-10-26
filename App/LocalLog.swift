@@ -11,6 +11,7 @@ final class LocalLog {
         case storeFailed = "Database could not open"
         case stopped = "App stopped"
         case meetingFailed = "Meeting reminder operation could not complete"
+        case retentionFailed = "Retention could not complete"
     }
 
     private let url: URL

@@ -1,6 +1,7 @@
 import Foundation
 import GRDB
 import Models
+import Brief
 
 public final class BriefStore: Sendable {
     let database: DatabaseQueue
@@ -91,7 +92,11 @@ extension BriefStore {
         try database.write { try $0.execute(sql: "INSERT INTO meta(key,value) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", arguments: [key, value]) }
     }
     public func saveBrief(date: String, data: Data, now: Date = Date()) throws {
-        try database.write { try $0.execute(sql: "INSERT INTO briefs(date,payload,created_at) VALUES (?,?,?) ON CONFLICT(date) DO UPDATE SET payload=excluded.payload,created_at=excluded.created_at", arguments: [date, data, now.timeIntervalSince1970]) }
+        let brief = try JSONDecoder().decode(BriefDocument.self, from: data)
+        try database.write { db in
+            try db.execute(sql: "INSERT INTO briefs(date,payload,created_at) VALUES (?,?,?) ON CONFLICT(date) DO UPDATE SET payload=excluded.payload,created_at=excluded.created_at", arguments: [date, data, now.timeIntervalSince1970])
+            try Self.preserveTasks(brief, now: now, db: db)
+        }
     }
     public func brief(date: String) throws -> Data? {
         try database.read { try Data.fetchOne($0, sql: "SELECT payload FROM briefs WHERE date=?", arguments: [date]) }

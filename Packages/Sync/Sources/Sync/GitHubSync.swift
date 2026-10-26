@@ -8,7 +8,7 @@ public struct GitHubSync: Sendable {
     public init(api: API, store: BriefStore) { self.api = api; self.store = store }
     struct Checkpoint: Codable { var since: String; var etag: String? }
     struct Notice: Decodable, Sendable {
-        struct Subject: Decodable, Sendable { let title: String; let url: String? }
+        struct Subject: Decodable, Sendable { let title: String; let url, type: String? }
         struct Repo: Decodable, Sendable { let html_url: String }
         let id, updated_at: String; let subject: Subject; let repository: Repo
     }
@@ -30,7 +30,7 @@ public struct GitHubSync: Sendable {
             for item in notices {
                 let url = item.subject.url?.replacingOccurrences(of: "https://api.github.com/repos/", with: "https://github.com/").replacingOccurrences(of: "/pulls/", with: "/pull/") ?? item.repository.html_url
                 records.append(SourceRecord(id: "notice:" + item.id, accountID: account, source: .github,
-                    title: item.subject.title, url: url, updated: Dates.parse(item.updated_at) ?? now))
+                    title: item.subject.title, url: url, updated: Dates.parse(item.updated_at) ?? now, kind: item.subject.type))
             }
             if notices.count < 100 { break }
             page += 1; guard page <= 100 else { throw SyncError.pagination }
@@ -42,7 +42,7 @@ public struct GitHubSync: Sendable {
                 guard !result.incomplete_results, result.total_count <= 1000 else { throw SyncError.tooLarge }
                 records += result.items.map { SourceRecord(id: "issue:\($0.id)", accountID: account, source: .github,
                     title: $0.title, body: TextNormalizer.clean($0.body ?? ""), url: $0.html_url,
-                    updated: Dates.parse($0.updated_at) ?? now, isOpen: $0.state == "open") }
+                    updated: Dates.parse($0.updated_at) ?? now, isOpen: $0.state == "open", kind: query.contains("is:pr") ? "PullRequest" : "Issue") }
                 if page * 100 >= result.total_count { break }
                 page += 1
             } while page <= 10

@@ -39,5 +39,8 @@ for resource in try manager.contentsOfDirectory(at: bin, includingPropertiesForK
 where resource.pathExtension == "bundle" {
     try copy(resource, resources.appendingPathComponent(resource.lastPathComponent))
 }
-try run("/usr/bin/codesign", ["--force", "--deep", "--sign", "-", app.path])
+let oldSignature = contents.appendingPathComponent("_CodeSignature")
+if manager.fileExists(atPath: oldSignature.path) { try manager.removeItem(at: oldSignature) }
+try run("/usr/bin/codesign", ["--remove-signature", macOS.appendingPathComponent("MorningBrief").path])
+try run("/usr/bin/codesign", ["--deep", "--sign", "-", app.path])
 print("Built \(app.path)")

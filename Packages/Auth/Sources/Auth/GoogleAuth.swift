@@ -14,7 +14,9 @@ public final class GoogleAuth {
     private var state: OIDAuthState?
     private var listener: OIDRedirectHTTPHandler?
     private var timeout: Task<Void, Never>?
+    private var generation = 0
     public init(keychain: Keychain = Keychain()) {
+        OIDURLSessionProvider.setSession(URLSession(configuration: .ephemeral))
         self.keychain = keychain
         do {
             if let data = try keychain.read("google") {
@@ -23,9 +25,16 @@ public final class GoogleAuth {
         } catch { needsSignIn = true }
     }
     public var isSignedIn: Bool { state?.isAuthorized == true }
+    public var accountID: String {
+        if let value = state?.lastTokenResponse?.idToken, let token = OIDIDToken(idTokenString: value) {
+            return "google:" + token.subject
+        }
+        return "google"
+    }
     public func signIn(clientID: String?, window: NSWindow, scopes: [String] = GoogleAuth.scopes) async throws {
         guard let clientID, !clientID.isEmpty else { throw AuthError.missingClient }
         cancel()
+        let revision = generation
         let listener = OIDRedirectHTTPHandler(successURL: nil)
         self.listener = listener
         var listenerError: NSError?
@@ -36,12 +45,15 @@ public final class GoogleAuth {
             tokenEndpoint: URL(string: "https://oauth2.googleapis.com/token")!)
         let secret = try keychain.read("google_client_secret").flatMap { String(data: $0, encoding: .utf8) }
         let request = OIDAuthorizationRequest(configuration: configuration, clientId: clientID,
-            clientSecret: secret, scopes: scopes, redirectURL: redirect, responseType: OIDResponseTypeCode,
+            clientSecret: secret, scopes: Array(Set(scopes + ["openid"])).sorted(), redirectURL: redirect, responseType: OIDResponseTypeCode,
             additionalParameters: ["access_type": "offline", "prompt": "consent"])
-        defer { timeout?.cancel(); timeout = nil; self.listener = nil }
+        defer {
+            if generation == revision { timeout?.cancel(); timeout = nil; self.listener = nil }
+        }
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             listener.currentAuthorizationFlow = OIDAuthState.authState(byPresenting: request, presenting: window) { state, error in
                 MainActor.assumeIsolated {
+                    guard self.generation == revision else { continuation.resume(throwing: AuthError.cancelled); return }
                     guard let state, error == nil else {
                         continuation.resume(throwing: AuthError.cancelled); return
                     }
@@ -56,15 +68,17 @@ public final class GoogleAuth {
             }
             timeout = Task { [weak self] in
                 try? await Task.sleep(for: .seconds(300))
-                if !Task.isCancelled { self?.cancel() }
+                if !Task.isCancelled, self?.generation == revision { self?.cancel() }
             }
         }
     }
     public func accessToken() async throws -> String {
         guard let state, state.isAuthorized else { needsSignIn = true; throw AuthError.signInAgain }
+        let revision = generation
         return try await withCheckedThrowingContinuation { continuation in
             state.performAction { token, _, error in
                 MainActor.assumeIsolated {
+                    guard self.generation == revision else { continuation.resume(throwing: AuthError.cancelled); return }
                     if let error {
                         let ns = error as NSError
                         if ns.domain == OIDOAuthTokenErrorDomain || !state.isAuthorized {
@@ -83,6 +97,9 @@ public final class GoogleAuth {
             }
         }
     }
-    public func cancel() { listener?.cancelHTTPListener(); listener = nil }
+    public func cancel() {
+        generation += 1; timeout?.cancel(); timeout = nil
+        let old = listener; listener = nil; old?.cancelHTTPListener()
+    }
     public func signOut() throws { cancel(); try keychain.delete("google"); state = nil; needsSignIn = false }
 }

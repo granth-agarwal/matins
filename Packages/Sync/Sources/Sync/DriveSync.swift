@@ -10,12 +10,12 @@ public struct DriveSync: Sendable {
     struct File: Decodable, Sendable {
         let id: String; let name, mimeType, modifiedTime, webViewLink, description: String?; let trashed: Bool?
     }
-    public func sync(account: String = "google", attachments: Set<String> = []) async throws {
+    public func sync(account: String = "google", attachments: Set<String> = [], freshAttachments: (@Sendable () async -> Set<String>)? = nil) async throws {
         let checkpoint = try store.checkpoint(account: account, source: .drive)
-        do { try await fetch(account: account, checkpoint: checkpoint, attachments: attachments) }
-        catch SyncError.status(410) { try await fetch(account: account, checkpoint: nil, attachments: attachments) }
+        do { try await fetch(account: account, checkpoint: checkpoint, attachments: attachments, freshAttachments: freshAttachments) }
+        catch SyncError.status(410) { try await fetch(account: account, checkpoint: nil, attachments: attachments, freshAttachments: freshAttachments) }
     }
-    private func fetch(account: String, checkpoint: String?, attachments: Set<String>) async throws {
+    private func fetch(account: String, checkpoint: String?, attachments: Set<String>, freshAttachments: (@Sendable () async -> Set<String>)?) async throws {
         struct Token: Decodable, Sendable { let startPageToken: String }
         struct Files: Decodable, Sendable { let files: [File]?; let nextPageToken: String? }
         struct Changes: Decodable, Sendable {
@@ -49,6 +49,7 @@ public struct DriveSync: Sendable {
                 if let next, !seen.insert(next).inserted { throw SyncError.pagination }
             } while next != nil
         }
+        let attachments = attachments.union(await freshAttachments?() ?? [])
         let cached = try store.records(source: .drive)
         for id in attachments where files[id] == nil && !removed.contains(id) && !cached.contains(where: { $0.accountID == account && $0.id == id }) {
             do { files[id] = try await api.get(base + "/files/" + API.component(id), query: ["fields": fields]) }

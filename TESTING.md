@@ -12,7 +12,7 @@
 ## 2. Authentication
 
 - [ ] Configure your own client IDs and use both sign-in menu actions.
-- [ ] Confirm Google consent grants only enabled read scopes, browser returns via loopback, and tokens survive app restart.
+- [ ] Confirm Google consent grants enabled read scopes plus account identity, browser returns via loopback, and tokens survive app restart.
 - [ ] Revoke Google consent externally, then refresh. Confirm Sign in again appears.
 - [ ] Verify GitHub device code, cancellation and expiry. Restart and confirm token works.
 - [ ] Deny Keychain access and verify a quiet error with no token in logs or files.
@@ -31,7 +31,7 @@
 - [ ] Verify promotions, social, ignored senders and trashed documents are excluded.
 - [ ] Disable network or revoke one service permission; confirm others finish and the failure remains visible.
 - [ ] Verify GitHub review requests and assignments in accessible repositories.
-- [ ] Check Drive note matching and Calendar attachments, including a newly attached document on the next run.
+- [ ] Check Drive note matching and Calendar attachments, including a newly attached document in the same run.
 
 ## 5. Brief generation
 
@@ -53,7 +53,7 @@
 
 ## 7. Daily trigger
 
-- [ ] Cold launch while unlocked: open the menu once to establish unlock state, or lock and unlock; confirm exactly one eligible daily run.
+- [ ] Cold launch while unlocked: open the menu and choose Reload config to establish unlock state, or lock and unlock; confirm exactly one eligible daily run.
 - [ ] Wake before trigger time, remain awake through it, and verify one window at the configured time.
 - [ ] Wake after trigger time but before latest show time; verify one brief.
 - [ ] Wake with lid closed on power and an external display, and with external display only.
@@ -83,3 +83,30 @@
 - [ ] Check prep uses only the selected source and linked Drive documents.
 - [ ] Disable the model or network and verify useful source-note fallback.
 - [ ] Close the sheet with Done or Escape and check keyboard focus returns to the brief.
+
+## 10. Onboarding, settings and data
+
+- [ ] First launch shows read-scope explanations and the on-device default. Close onboarding and verify no automatic sync occurs before Save and begin.
+- [ ] Enter your client IDs, connect accounts and save. Restart and verify preferences and credentials survive.
+- [ ] Change time, skip days, sources, Calendar IDs, quiet mode and palette settings. Verify saved YAML is reloaded and disabled sources are excluded from cached briefs and sticker context.
+- [ ] Switch to Anthropic only after reading and confirming the cloud disclosure. Verify the key is only in Keychain and the model ID comes from config.
+- [ ] Toggle launch at login in an installed app bundle. Check System Settings approval and restart behavior.
+- [ ] Enable and deny notification authorization; verify permission status and scheduled fallback actions.
+- [ ] Leave a task unchecked for another day and complete a second task. Verify carry-over and completed state after retention and Refresh.
+- [ ] Sign out of Google, including during an expired-grant recovery. Verify Google local rows and credentials are removed, GitHub remains available, and the app does not make another automatic model call that day.
+- [ ] Connect a different Google account after sign-out. Verify old account records and tasks do not appear.
+- [ ] Use Delete all data on disposable local data. Verify credentials, tasks, briefs, caches, login registration and preferences are removed/reset, without changes to remote accounts.
+- [ ] Use Quit and uninstall on a disposable app copy. Verify login registration and Keychain entries are removed, the app quits, and its bundle/support folder move to Trash. Deleted credentials cannot be restored from Trash.
+- [ ] Inspect the local log for useful lifecycle diagnostics without tokens or source text.
+- [ ] On macOS 14 and a Foundation Models-capable Mac, verify runtime compatibility and the appropriate model path.
+- [ ] With every app window closed, measure RSS and idle CPU in Activity Monitor. Target under 60 MB RSS and near zero CPU; record actual values. Repeat after opening and closing a brief and prep sheet.
+
+## Automated verification completed
+
+- Fixture-backed source checkpoint, rollback, recovery and isolation tests run without credentials.
+- Twenty fixture days pass the brief schema and grounding checker.
+- Trigger boundaries, local dates, DST, reminder timing, quiet hours, palette contrast and persistent task checks are covered.
+- Settings save, retention, account-scoped deletion and data reset are exercised only in isolated temporary stores.
+- The app bundle builds, its plist/project syntax validates, and its executable uses system libraries with a weak Foundation Models dependency.
+
+Unchecked items above are not claimed as verified. No user account was connected and no real user data was deleted during development.

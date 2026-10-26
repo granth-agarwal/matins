@@ -9,6 +9,7 @@ public enum ModelError: Error { case unavailable, configuration, invalidResponse
 public struct BriefResult: Sendable {
     public let document: BriefDocument
     public let usedFallback: Bool
+    public init(document: BriefDocument, usedFallback: Bool) { self.document = document; self.usedFallback = usedFallback }
 }
 
 public struct BriefGenerator: Sendable {
@@ -17,7 +18,7 @@ public struct BriefGenerator: Sendable {
         records.filter {
             if $0.source == .calendar { return $0.start.map { Calendar.current.isDate($0, inSameDayAs: now) } ?? false }
             return $0.updated >= now.addingTimeInterval(-3 * 86400) && $0.updated <= now
-        }.sorted { ($0.start ?? .distantFuture, $0.key) < ($1.start ?? .distantFuture, $1.key) }
+        }.sorted { ($0.start ?? .distantFuture, $0.rank ?? 2, $0.key) < ($1.start ?? .distantFuture, $1.rank ?? 2, $1.key) }
     }
     public func generate(records: [SourceRecord], now: Date = Date(), succeeded: [String], failed: [String], provider: any ModelProvider) async -> BriefResult {
         let eligible = Self.eligible(records, now: now)
@@ -34,14 +35,22 @@ public struct BriefGenerator: Sendable {
             Maximum 5 todos, 4 updates, 5 replies, 6 skip_today. Titles: focus 10 words, todos 9, updates 10.
             Details: focus 12 words, updates 10. Prep: 3 bullets with 8 words each. Email excerpts at most 10 words.
             Allowed actions: prep, reply, review, open. Labels: meeting, reply, pr, deadline, personal, deep-work.
-            Empty focus uses empty strings and action open. Leave replies, skip_today and carry_over empty.
+            Empty focus uses empty strings and action open. Replies must use an exact record person and URL.
+            Skip_today entries must be short exact record title excerpts. Leave carry_over empty.
             Baseline:
             \(baseline)
             """
             let output = try await provider.respond(instructions: instructions, input: input)
             guard output.utf8.count < 100_000 else { throw ModelError.invalidResponse }
-            let document = try JSONDecoder().decode(BriefDocument.self, from: Data(output.utf8))
+            var document = try BriefJSON.decode(Data(output.utf8))
             try Self.validate(document, records: eligible, baseline: fallback)
+            document.todos.sort { left, right in
+                let a = Dates.parse(left.due) ?? .distantFuture, b = Dates.parse(right.due) ?? .distantFuture
+                if a != b { return a < b }
+                if (left.label == "meeting") != (right.label == "meeting") { return left.label == "meeting" }
+                return left.priority < right.priority
+            }
+            for index in document.todos.indices { document.todos[index].priority = index + 1 }
             return BriefResult(document: document, usedFallback: false)
         } catch { return BriefResult(document: fallback, usedFallback: true) }
     }
@@ -50,17 +59,21 @@ public struct BriefGenerator: Sendable {
         let meetings = records.filter { $0.source == .calendar }
         let tasks = records.filter { $0.isOpen && !$0.url.isEmpty }.prefix(5)
         let todos = tasks.enumerated().map { index, record in
-            Todo(id: record.key, title: TextNormalizer.words(record.title, limit: 9), label: record.source == .calendar ? "meeting" : (record.source == .gmail ? "reply" : "pr"), priority: index + 1, due: record.start?.ISO8601Format(), source: record.source.rawValue, source_url: record.url)
+            Todo(id: record.key, title: TextNormalizer.words(record.title, limit: 9), label: record.source == .calendar ? "meeting" : (record.source == .gmail ? "reply" : (record.kind == "PullRequest" ? "pr" : "deep-work")), priority: index + 1, due: record.start?.ISO8601Format(), source: record.source.rawValue, source_url: record.url)
         }
         let first = tasks.first
         let formatter = DateFormatter(); formatter.locale = Locale(identifier: "en_US_POSIX"); formatter.dateFormat = "EEEE"
         return BriefDocument(date: Dates.day(now), weekday: formatter.string(from: now),
             greeting_line: meetings.isEmpty ? "No meetings today. Your time is open." : "Your day, gathered in one quiet place.",
             focus: Focus(title: first.map { TextNormalizer.words($0.title, limit: 10) } ?? "", detail: "", action: first?.source == .calendar ? "prep" : "open", source_id: first?.key ?? ""),
-            todos: todos, updates: [], schedule: meetings.compactMap { record in
+            todos: todos, updates: records.filter { $0.source != .calendar && !$0.url.isEmpty && !Set(tasks.map(\.key)).contains($0.key) }.prefix(4).map {
+                Update(title: TextNormalizer.words($0.title, limit: 10), detail: "", source: $0.source.rawValue, source_url: $0.url)
+            }, schedule: meetings.compactMap { record in
                 guard let start = record.start, let end = record.end else { return nil }
                 return Meeting(event_id: record.key, start: start.ISO8601Format(), end: end.ISO8601Format(), title: record.title, prep: [], join_url: record.joinURL ?? "", has_prep_action: true)
-            }, replies: [], skip_today: [], carry_over: [], sources_used: succeeded.sorted(), failed_sources: failed.sorted())
+            }, replies: records.filter { $0.source == .gmail && $0.isOpen && $0.person != nil && !$0.url.isEmpty }.prefix(5).map {
+                Reply(person: $0.person!, ask: TextNormalizer.words($0.title, limit: 10), thread_url: $0.url)
+            }, skip_today: [], carry_over: [], sources_used: succeeded.sorted(), failed_sources: failed.sorted())
     }
     public static func validate(_ brief: BriefDocument, records: [SourceRecord], baseline: BriefDocument) throws {
         func require(_ value: Bool) throws { if !value { throw ModelError.invalidBrief } }
@@ -73,20 +86,27 @@ public struct BriefGenerator: Sendable {
         try require(brief.date == baseline.date && brief.weekday == baseline.weekday && brief.greeting_line == baseline.greeting_line)
         try require(brief.sources_used == baseline.sources_used && brief.failed_sources == baseline.failed_sources)
         try require(brief.todos.count <= 5 && brief.updates.count <= 4 && brief.replies.count <= 5 && brief.skip_today.count <= 6)
-        try require(brief.replies.isEmpty && brief.skip_today.isEmpty && brief.carry_over.isEmpty)
+        try require(brief.carry_over.isEmpty)
+        for reply in brief.replies {
+            guard let record = records.first(where: { $0.source == .gmail && $0.url == reply.thread_url && $0.person == reply.person }) else { throw ModelError.invalidBrief }
+            try require(short(reply.ask, 10) && excerpt(reply.ask, record))
+        }
+        for item in brief.skip_today { try require(short(item, 10) && records.contains { $0.title.localizedCaseInsensitiveContains(item) }) }
         try require(Set(brief.todos.map(\.id)).count == brief.todos.count)
         try require(short(brief.focus.title, 10) && short(brief.focus.detail, 12) && ["prep", "reply", "review", "open"].contains(brief.focus.action))
         if brief.focus.source_id.isEmpty { try require(brief.focus.title.isEmpty && brief.focus.detail.isEmpty) }
         else {
-            guard let record = records.first(where: { $0.key == brief.focus.source_id }) else { throw ModelError.invalidBrief }
+            guard let record = records.first(where: { $0.key == brief.focus.source_id && $0.isOpen }) else { throw ModelError.invalidBrief }
             try require(excerpt(brief.focus.title, record) && excerpt(brief.focus.detail, record))
             if record.source == .gmail { try require(short(brief.focus.detail, 10)) }
         }
         for item in brief.todos {
-            guard let record = records.first(where: { $0.key == item.id }) else { throw ModelError.invalidBrief }
+            guard let record = records.first(where: { $0.key == item.id && $0.isOpen }) else { throw ModelError.invalidBrief }
             try require(item.source == record.source.rawValue && item.source_url == record.url && !item.source_url.isEmpty)
             try require(short(item.title, 9) && excerpt(item.title, record) && (1...5).contains(item.priority))
             try require(["meeting", "reply", "pr", "deadline", "personal", "deep-work"].contains(item.label))
+            if item.label == "meeting" { try require(record.source == .calendar) }
+            if item.label == "pr" { try require(record.kind == "PullRequest") }
             try require(item.due == record.start?.ISO8601Format())
         }
         for item in brief.updates {

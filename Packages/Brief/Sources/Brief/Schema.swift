@@ -50,6 +50,14 @@ public struct Todo: Codable, Sendable, Equatable {
     public var due: String?
     public var source: String
     public var source_url: String
+    enum CodingKeys: String, CodingKey { case id, title, label, priority, due, source, source_url }
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id); try container.encode(title, forKey: .title)
+        try container.encode(label, forKey: .label); try container.encode(priority, forKey: .priority)
+        try container.encode(due, forKey: .due); try container.encode(source, forKey: .source)
+        try container.encode(source_url, forKey: .source_url)
+    }
     public init(id: String, title: String, label: String, priority: Int, due: String?, source: String, source_url: String) {
         self.id = id
         self.title = title
@@ -58,6 +66,28 @@ public struct Todo: Codable, Sendable, Equatable {
         self.due = due
         self.source = source
         self.source_url = source_url
+    }
+}
+
+public enum BriefJSON {
+    public static func decode(_ data: Data) throws -> BriefDocument {
+        guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any] else { throw ModelError.invalidBrief }
+        func keys(_ value: Any?, _ names: [String]) throws {
+            guard let dictionary = value as? [String: Any], Set(dictionary.keys) == Set(names) else { throw ModelError.invalidBrief }
+        }
+        try keys(root, ["date", "weekday", "greeting_line", "focus", "todos", "updates", "schedule", "replies", "skip_today", "carry_over", "sources_used", "failed_sources"])
+        try keys(root["focus"], ["title", "detail", "action", "source_id"])
+        for (name, fields) in [
+            ("todos", ["id", "title", "label", "priority", "due", "source", "source_url"]),
+            ("updates", ["title", "detail", "source", "source_url"]),
+            ("schedule", ["event_id", "start", "end", "title", "prep", "join_url", "has_prep_action"]),
+            ("replies", ["person", "ask", "thread_url"]),
+            ("carry_over", ["id", "title", "age_days"])
+        ] {
+            guard let list = root[name] as? [Any] else { throw ModelError.invalidBrief }
+            for item in list { try keys(item, fields) }
+        }
+        return try JSONDecoder().decode(BriefDocument.self, from: data)
     }
 }
 

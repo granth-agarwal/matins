@@ -39,7 +39,9 @@ public struct CalendarSync: Sendable {
     public let store: BriefStore
     public init(api: API, store: BriefStore) { self.api = api; self.store = store }
     public func sync(account: String = "google", calendar: String = "primary", now: Date = Date()) async throws {
-        let checkpoint = try store.checkpoint(account: account, source: .calendar, scope: calendar)
+        let saved = try store.checkpoint(account: account, source: .calendar, scope: calendar)
+        let windowDay = try store.meta("calendarWindow:\(account):\(calendar)")
+        let checkpoint = windowDay == nil || windowDay == Dates.day(now) ? saved : nil
         do { try await fetch(account: account, calendar: calendar, token: checkpoint, now: now) }
         catch SyncError.status(410) { try await fetch(account: account, calendar: calendar, token: nil, now: now) }
     }
@@ -64,6 +66,7 @@ public struct CalendarSync: Sendable {
             } else {
                 guard let next = page.nextSyncToken else { throw SyncError.invalidResponse }
                 try store.commit(account: account, source: .calendar, scope: calendar, records: records, deleted: deleted, checkpoint: next, replace: token == nil)
+                if token == nil { try store.setMeta("calendarWindow:\(account):\(calendar)", Dates.day(now)) }
                 return
             }
         }

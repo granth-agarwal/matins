@@ -91,3 +91,17 @@ Fallback: prep text is restricted to grounded short excerpts, matching the conse
 Manual checks: sticker interactions, real model output and sheet accessibility in TESTING.md.
 
 Validation: 29 tests passed; development app bundle built successfully. The temporary sticker placeholder is removed.
+
+## Milestone 10
+
+Implemented: first-run scope/privacy disclosure, validated settings saves, public OAuth client fields, secure Keychain credential entry, explicit Anthropic choice, notification authorization, launch at login, local sign-out, data reset and confirmed uninstall. Uninstall clears local credentials/data and login registration, trashes the app/support folder and quits. Retention runs before brief generation, strips old cached bodies, removes expired briefs and preserves unchecked carry-over and completed task state. Account identity comes from Google's OpenID token; account switches and disabled sources cannot mix records into the current brief.
+
+Integration completed: configurable Calendar IDs, fresh daily rolling windows with same-day incremental tokens, same-run Drive attachment resolution, Gmail VIP ranking, reply provenance, strict JSON field checks, explicit null due values, conservative model labels, custom palettes with contrast shading, side-by-side schedule details, all-day labels, live Join activation with a one-shot wait, tick drawing and released window content when closed. Authentication sessions are ephemeral. The build helper signs without forcing replacement.
+
+Fallbacks and tradeoffs: Calendar does a bounded full window sync on each new local day to keep recurring instances covered; additional same-day syncs use saved tokens. The hard one-call model limit still excludes per-item model summaries and validation retries. Generated text remains short source excerpts. Optional Chat and reserved OpenAI/Ollama providers are not implemented; they do not cause network calls. Drive exports Google documents and uses metadata for other file types. The absent signature uses configured text, and the inaccessible mockup still requires a manual pixel comparison. Cold-launch lock-state conservatism and stale fallback notifications when the agent is stopped remain as documented above.
+
+Resolved earlier temporary gaps: custom palettes, schedule detail placement, sticker actions, model credential settings, Gmail VIP ranking, reply/skip validation, Calendar window advancement and new Drive attachments are implemented. Carry-over comes from durable local task state, outside model synthesis.
+
+Manual checks: onboarding and credential flows, launch at login, notification actions, wake/lock/display behavior, pixel/accessibility review, idle RSS/CPU, older macOS runtime and confirmed deletion/uninstall. All are listed in TESTING.md. No real credentials or account data were used for validation.
+
+Validation: final authentication cancellation guards passed the complete suite: 38 tests in 11 suites, including the 20-day fixture checker. The development app bundle built successfully, its code signature verifies, plist/project syntax validates, and Foundation Models is confirmed weak-linked. Font names were checked with CoreText. No real account data was changed. Vendor OFL license texts remain verbatim, including their original punctuation; authored UI and documentation avoid the prohibited punctuation. Milestone 11 is excluded.

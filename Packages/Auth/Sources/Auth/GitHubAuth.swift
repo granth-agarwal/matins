@@ -20,7 +20,7 @@ public enum DevicePoll: Equatable, Sendable {
 public actor GitHubAuth {
     private let keychain: Keychain
     private let session: URLSession
-    public init(keychain: Keychain = Keychain(), session: URLSession = .shared) {
+    public init(keychain: Keychain = Keychain(), session: URLSession = URLSession(configuration: .ephemeral)) {
         self.keychain = keychain; self.session = session
     }
     private func post<T: Decodable>(_ path: String, fields: [String: String]) async throws -> T {
@@ -48,6 +48,7 @@ public actor GitHubAuth {
             try await Task.sleep(for: .seconds(interval))
             let result: Response = try await post("oauth/access_token", fields: ["client_id": clientID,
                 "device_code": code.device_code, "grant_type": "urn:ietf:params:oauth:grant-type:device_code"])
+            try Task.checkCancellation()
             switch DevicePoll.result(error: result.error, token: result.access_token, interval: interval) {
             case .authorized(let token): try keychain.write(Data(token.utf8), key: "github"); return
             case .wait(let seconds): interval = seconds

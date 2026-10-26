@@ -18,21 +18,27 @@ public struct SourceRecord: Codable, Identifiable, Sendable, Equatable {
     public var attendeeCount: Int
     public var attachmentIDs: [String]
     public var isOpen: Bool
+    public var person: String?
+    public var kind: String?
+    public var rank: Int?
     public init(id: String, accountID: String, source: Source, scope: String = "", title: String,
                 body: String = "", url: String = "", updated: Date = Date(), start: Date? = nil,
                 end: Date? = nil, allDay: Bool = false, joinURL: String? = nil, attendeeCount: Int = 0,
-                attachmentIDs: [String] = [], isOpen: Bool = true) {
+                attachmentIDs: [String] = [], isOpen: Bool = true, person: String? = nil, kind: String? = nil, rank: Int? = nil) {
         self.id = id; self.accountID = accountID; self.source = source; self.scope = scope
         self.title = title; self.body = body; self.url = url; self.updated = updated; self.start = start
         self.end = end; self.allDay = allDay; self.joinURL = joinURL; self.attendeeCount = attendeeCount
         self.attachmentIDs = attachmentIDs; self.isOpen = isOpen
+        self.person = person; self.kind = kind; self.rank = rank
     }
     public var key: String { "\(accountID)|\(source.rawValue)|\(scope)|\(id)" }
 }
 
 public enum TextNormalizer {
     public static func clean(_ text: String) -> String {
-        let stripped = text.replacingOccurrences(of: "(?is)<(script|style)[^>]*>.*?</\\1>", with: "", options: .regularExpression)
+        let stripped = text.replacingOccurrences(of: "(?is)<blockquote\\b.*", with: "", options: .regularExpression)
+            .replacingOccurrences(of: "(?is)<div[^>]*class=[\"'][^\"']*gmail_(quote|signature)[^\"']*[\"'][^>]*>.*", with: "", options: .regularExpression)
+            .replacingOccurrences(of: "(?is)<(script|style)[^>]*>.*?</\\1>", with: "", options: .regularExpression)
             .replacingOccurrences(of: "(?i)<br\\s*/?>|</p>|</div>", with: "\n", options: .regularExpression)
             .replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
             .replacingOccurrences(of: "&nbsp;", with: " ").replacingOccurrences(of: "&amp;", with: "&")
