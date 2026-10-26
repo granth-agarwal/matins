@@ -36,6 +36,9 @@ public final class BriefStore: Sendable {
                 try db.execute(sql: "CREATE TABLE \(table) (account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE, scope TEXT NOT NULL, id TEXT NOT NULL, payload BLOB NOT NULL, updated_at DOUBLE NOT NULL, PRIMARY KEY(account_id, scope, id))")
             }
         }
+        migrator.registerMigration("briefs_v3") { db in
+            try db.execute(sql: "CREATE TABLE briefs (date TEXT PRIMARY KEY, payload BLOB NOT NULL, created_at DOUBLE NOT NULL)")
+        }
         try migrator.migrate(database)
     }
 
@@ -83,6 +86,12 @@ extension BriefStore {
     }
     public func setMeta(_ key: String, _ value: String) throws {
         try database.write { try $0.execute(sql: "INSERT INTO meta(key,value) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", arguments: [key, value]) }
+    }
+    public func saveBrief(date: String, data: Data, now: Date = Date()) throws {
+        try database.write { try $0.execute(sql: "INSERT INTO briefs(date,payload,created_at) VALUES (?,?,?) ON CONFLICT(date) DO UPDATE SET payload=excluded.payload,created_at=excluded.created_at", arguments: [date, data, now.timeIntervalSince1970]) }
+    }
+    public func brief(date: String) throws -> Data? {
+        try database.read { try Data.fetchOne($0, sql: "SELECT payload FROM briefs WHERE date=?", arguments: [date]) }
     }
 }
 public enum StoreError: Error { case wrongScope }

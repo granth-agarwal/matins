@@ -5,6 +5,7 @@ import OSLog
 import Store
 import Sync
 import Models
+import Brief
 import SwiftUI
 
 @main
@@ -22,6 +23,7 @@ final class MenuBarAgent: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let github = GitHubAuth()
     private var authTask: Task<Void, Never>?
     private var authWindow: NSWindow?
+    private var running = false
     private var item: NSStatusItem?
     private var paths: ApplicationPaths?
     private var log: LocalLog?
@@ -44,6 +46,7 @@ final class MenuBarAgent: NSObject, NSApplicationDelegate, NSMenuDelegate {
         add("Cancel sign-in", action: #selector(cancelSignIn), to: menu)
         add("Refresh Calendar", action: #selector(refreshCalendar), to: menu)
         add("Refresh sources", action: #selector(refreshSources), to: menu)
+        add("Generate brief", action: #selector(generateBrief), to: menu)
         add("Open config…", action: #selector(openConfig), to: menu)
         add("Reload config", action: #selector(reload), to: menu)
         add("Open data folder", action: #selector(openDataFolder), to: menu)
@@ -96,6 +99,35 @@ final class MenuBarAgent: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func menuWillOpen(_ menu: NSMenu) { loadConfig() }
 
     @objc private func reload() { loadConfig() }
+
+    private func provider() -> any ModelProvider {
+        guard let config else { return UnavailableProvider() }
+        if config.model.provider == "apple_on_device" { return AppleProvider() }
+        if config.model.provider == "anthropic", let key = try? Keychain().read("anthropic"),
+           let value = String(data: key, encoding: .utf8), let model = config.model.modelID {
+            return AnthropicProvider(key: value, model: model)
+        }
+        return UnavailableProvider()
+    }
+    private func makeBrief() async throws -> BriefResult {
+        guard let store else { throw ModelError.configuration }
+        let outcome = await syncSources()
+        let records = try store.records()
+        let result = await BriefGenerator().generate(records: records, succeeded: outcome.succeeded.map(\.rawValue), failed: outcome.failed.map(\.rawValue), provider: provider())
+        try store.saveBrief(date: result.document.date, data: JSONEncoder().encode(result.document))
+        return result
+    }
+    @objc private func generateBrief() {
+        guard !running else { return }; running = true; loadConfig()
+        Task {
+            defer { running = false }
+            do {
+                let result = try await makeBrief()
+                _ = showAuthWindow(result.document.greeting_line + "\n" + result.document.todos.map(\.title).joined(separator: "\n"))
+                status.title = result.usedFallback ? "Brief ready using source records" : "Brief ready"
+            } catch { status.title = "Brief could not be saved. Try again." }
+        }
+    }
 
     private func syncSources() async -> SyncOutcome {
         guard let store, let config else { return await SyncCoordinator.run([]) }

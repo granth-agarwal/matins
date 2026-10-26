@@ -1,0 +1,122 @@
+[
+  {
+    "date": "2026-10-01",
+    "title": "Review release notes",
+    "source": "github",
+    "empty": true
+  },
+  {
+    "date": "2026-10-02",
+    "title": "Design review",
+    "source": "calendar",
+    "empty": false
+  },
+  {
+    "date": "2026-10-03",
+    "title": "Reply to project question",
+    "source": "gmail",
+    "empty": false
+  },
+  {
+    "date": "2026-10-04",
+    "title": "Plan next iteration",
+    "source": "drive",
+    "empty": false
+  },
+  {
+    "date": "2026-10-05",
+    "title": "Review release notes",
+    "source": "github",
+    "empty": false
+  },
+  {
+    "date": "2026-10-06",
+    "title": "Design review",
+    "source": "calendar",
+    "empty": false
+  },
+  {
+    "date": "2026-10-07",
+    "title": "Reply to project question",
+    "source": "gmail",
+    "empty": false
+  },
+  {
+    "date": "2026-10-08",
+    "title": "Plan next iteration",
+    "source": "drive",
+    "empty": true
+  },
+  {
+    "date": "2026-10-09",
+    "title": "Review release notes",
+    "source": "github",
+    "empty": false
+  },
+  {
+    "date": "2026-10-10",
+    "title": "Design review",
+    "source": "calendar",
+    "empty": false
+  },
+  {
+    "date": "2026-10-11",
+    "title": "Reply to project question",
+    "source": "gmail",
+    "empty": false
+  },
+  {
+    "date": "2026-10-12",
+    "title": "Plan next iteration",
+    "source": "drive",
+    "empty": false
+  },
+  {
+    "date": "2026-10-13",
+    "title": "Review release notes",
+    "source": "github",
+    "empty": false
+  },
+  {
+    "date": "2026-10-14",
+    "title": "Design review",
+    "source": "calendar",
+    "empty": false
+  },
+  {
+    "date": "2026-10-15",
+    "title": "Reply to project question",
+    "source": "gmail",
+    "empty": true
+  },
+  {
+    "date": "2026-10-16",
+    "title": "Plan next iteration",
+    "source": "drive",
+    "empty": false
+  },
+  {
+    "date": "2026-10-17",
+    "title": "Review release notes",
+    "source": "github",
+    "empty": false
+  },
+  {
+    "date": "2026-10-18",
+    "title": "Design review",
+    "source": "calendar",
+    "empty": false
+  },
+  {
+    "date": "2026-10-19",
+    "title": "Reply to project question",
+    "source": "gmail",
+    "empty": false
+  },
+  {
+    "date": "2026-10-20",
+    "title": "Plan next iteration",
+    "source": "drive",
+    "empty": false
+  }
+]

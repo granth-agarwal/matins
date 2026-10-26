@@ -32,3 +32,11 @@
 - [ ] Disable network or revoke one service permission; confirm others finish and the failure remains visible.
 - [ ] Verify GitHub review requests and assignments in accessible repositories.
 - [ ] Check Drive note matching and Calendar attachments, including a newly attached document on the next run.
+
+## 5. Brief generation
+
+- [ ] Generate with Apple Intelligence enabled on supported macOS; verify one synthesis call and grounded contents.
+- [ ] On older macOS or with Apple Intelligence disabled, verify useful local fallback.
+- [ ] Configure Anthropic explicitly with a valid model ID and Keychain key in Settings; verify only that provider receives data.
+- [ ] Test invalid key, offline mode and provider failure; verify the brief still appears from source records.
+- [ ] Review all generated text and links against your source records.

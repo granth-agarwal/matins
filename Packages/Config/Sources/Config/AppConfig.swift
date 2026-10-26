@@ -62,6 +62,8 @@ public struct AppConfig: Codable, Sendable {
 
     public struct Model: Codable, Sendable {
         public let provider, synthesis: String
+        public let modelID: String?
+        enum CodingKeys: String, CodingKey { case provider, synthesis; case modelID = "model_id" }
     }
 
     public struct Popups: Codable, Sendable {

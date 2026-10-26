@@ -41,3 +41,13 @@ Fallbacks: optional Chat remains disabled. Drive has no universal Meet-note mark
 Manual checks: real source permissions, quota/offline errors, incremental edits and attachment detection in TESTING.md.
 
 Validation: 15 tests passed; development app bundle built successfully.
+
+## Milestone 5
+
+Implemented: complete Codable brief schema, word/count limits and source provenance validation, Apple Foundation Models guarded for macOS 26, Anthropic provider with explicit config model ID and Keychain key, saved JSON and deterministic fallback. Twenty fixture days test valid grounded output; adversarial tests reject invented text and URLs.
+
+Fallbacks: the hard one-model-call limit takes precedence over per-item model summaries and a second validation call. Long text is normalized locally; invalid output falls back immediately. Grounding is intentionally conservative: model prose must be source excerpts, greeting is deterministic, replies/skip/carry-over are reserved empty for synthesis. Apple unavailable, unconfigured Anthropic, OpenAI or Ollama selections yield local rule-based output; only the required one cloud provider is implemented. No automatic cloud fallback occurs. Per-item summaries and retry are not implemented due to the explicit hard limit.
+
+Manual checks: actual on-device availability, explicit cloud consent/configuration, offline/model failures and output review.
+
+Validation: 19 tests passed, including the 20-day fixture checker. Release configuration development bundle built successfully.

@@ -5,6 +5,7 @@ let package = Package(
     name: "Brief",
     platforms: [.macOS(.v14)],
     products: [.library(name: "Brief", targets: ["Brief"])],
-    targets: [.target(name: "Brief")],
+    dependencies: [.package(path: "../Models")],
+    targets: [.target(name: "Brief", dependencies: ["Models"])],
     swiftLanguageModes: [.v6]
 )
