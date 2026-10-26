@@ -10,6 +10,7 @@ final class LocalLog {
         case storeReady = "Database ready"
         case storeFailed = "Database could not open"
         case stopped = "App stopped"
+        case meetingFailed = "Meeting reminder operation could not complete"
     }
 
     private let url: URL

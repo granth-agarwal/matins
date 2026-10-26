@@ -68,6 +68,7 @@ public struct AppConfig: Codable, Sendable {
 
     public struct Popups: Codable, Sendable {
         public let enabled: Bool
+        public let quietMode: Bool?
         public let minutesBefore: [Int]
         public let quietHours: [String]
         public let position: String
@@ -75,6 +76,7 @@ public struct AppConfig: Codable, Sendable {
             case enabled, position
             case minutesBefore = "minutes_before"
             case quietHours = "quiet_hours"
+            case quietMode = "quiet_mode"
         }
     }
 

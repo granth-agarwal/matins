@@ -63,3 +63,15 @@
 - [ ] Change timezone, move the clock forward/back, and cross DST; verify local-date rules and no duplicate daily model call.
 - [ ] Open Show today's brief at any time; confirm it does not update lastShown or make a model call.
 - [ ] Quit and restart after a successful daily display; verify no automatic second run.
+
+## 8. Meeting reminders
+
+- [ ] Create a meeting at least 16 minutes ahead, refresh, and verify one T minus 15 calendar recheck.
+- [ ] Move it before recheck, verify old timers and fallback notifications are replaced; delete it and verify cancellation.
+- [ ] Check T minus 10 and T minus 2 cards appear 20 points from bottom left on the active window's screen.
+- [ ] Type into another app while a card appears; verify focus and typing stay in that app.
+- [ ] Test multiple Spaces, full screen, external display removal, and the Dock on different edges.
+- [ ] Test Join, Snooze 2 min, Ignore, overlap queueing and dismissal five minutes after start.
+- [ ] Verify quiet_mode, overnight quiet_hours, screen lock and display sleep suppress cards.
+- [ ] Enable notifications in Settings, quit before a scheduled reminder, and verify fallback Join/Snooze/Ignore actions after relaunch.
+- [ ] Deny notification permission, sleep through a meeting and restart; confirm no stale cards or crashes.

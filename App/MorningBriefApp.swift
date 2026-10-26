@@ -8,6 +8,7 @@ import Models
 import Brief
 import UI
 import Trigger
+import Popup
 import SwiftUI
 
 @main
@@ -28,6 +29,7 @@ final class MenuBarAgent: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var running = false
     private let briefWindow = BriefWindowController()
     private var trigger: TriggerService?
+    private var meetings: MeetingScheduler?
     private var item: NSStatusItem?
     private var paths: ApplicationPaths?
     private var log: LocalLog?
@@ -83,11 +85,22 @@ final class MenuBarAgent: NSObject, NSApplicationDelegate, NSMenuDelegate {
             }
             loadConfig()
             if let store {
+                let meetings = MeetingScheduler(store: store, configuration: { [weak self] in self?.config },
+                    canPresent: { [weak self] in
+                        guard let self, let trigger = self.trigger else { return false }
+                        return trigger.displayAwake && (self.config?.requireUnlocked == false || trigger.sessionUnlocked)
+                    }, recheck: { [weak self] event in
+                        guard let self else { return nil }
+                        let token = try await self.google.accessToken()
+                        return try await CalendarSync(api: API(token: token), store: store).recheck(event)
+                    }, failure: { [weak self] in self?.log?.record(.meetingFailed) })
+                self.meetings = meetings
                 let trigger = TriggerService(store: store, configuration: { [weak self] in self?.config },
                     run: { [weak self] in await self?.runDaily() ?? false },
                     failure: { [weak self] in self?.status.title = "Daily state could not save. Try again." })
                 self.trigger = trigger
                 trigger.start()
+                Task { await meetings.register((try? store.records(source: .calendar)) ?? []) }
             }
         } catch {
             status.title = "App data folder could not open"
@@ -150,6 +163,7 @@ final class MenuBarAgent: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let records = try store.records()
         let result = await BriefGenerator().generate(records: records, succeeded: outcome.succeeded.map(\.rawValue), failed: outcome.failed.map(\.rawValue), provider: provider())
         try store.saveBrief(date: result.document.date, data: JSONEncoder().encode(result.document))
+        await meetings?.register((try? store.records(source: .calendar)) ?? [])
         return result
     }
     @objc private func generateBrief() {
@@ -267,5 +281,5 @@ final class MenuBarAgent: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func quit() { NSApp.terminate(nil) }
 
-    func applicationWillTerminate(_ notification: Notification) { trigger?.stop(); log?.record(.stopped) }
+    func applicationWillTerminate(_ notification: Notification) { trigger?.stop(); meetings?.stop(); log?.record(.stopped) }
 }

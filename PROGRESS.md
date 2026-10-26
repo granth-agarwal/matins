@@ -71,3 +71,13 @@ Fallback: macOS exposes session switching but no documented public lock-state qu
 Manual checks: wake/lock/call/external display/clock matrix in TESTING.md.
 
 Validation: all 24 tests passed; development app bundle built successfully.
+
+## Milestone 8
+
+Implemented: nonactivating floating NSPanel reminders, active-screen bottom-left placement, live countdown while visible, overlap queue, Join/Snooze/Ignore, expiration, quiet policy and persisted reminder state. The scheduler registers one T minus 15 recheck and configured popup timers, replacing moved meetings and removing cancelled meetings. Notification fallback categories and actions are scheduled in advance; foreground banners are suppressed to avoid duplicates. No resident countdown runs when the card is closed.
+
+Fallbacks: notification permission is requested explicitly from Settings in milestone 10. A stopped agent cannot recheck changed meetings, so already scheduled fallback notifications can be stale until relaunch. This is inherent to the idle-agent and no-extra-process constraints. Custom popup placement and system Focus behavior require a real desktop session to verify.
+
+Manual checks: placement, focus, Spaces, notification permissions/actions and moved meetings in TESTING.md.
+
+Validation: 27 tests passed and development bundle built. Cancellation now removes every scheduled lead time, async notification registrations use generation IDs, and fallback actions restore the selected meeting from SQLite on relaunch.
