@@ -75,3 +75,11 @@
 - [ ] Verify quiet_mode, overnight quiet_hours, screen lock and display sleep suppress cards.
 - [ ] Enable notifications in Settings, quit before a scheduled reminder, and verify fallback Join/Snooze/Ignore actions after relaunch.
 - [ ] Deny notification permission, sleep through a meeting and restart; confirm no stale cards or crashes.
+
+## 9. Sticker actions
+
+- [ ] Click Prep me and Let's do it; verify a short note appears in a sheet for the selected source.
+- [ ] Verify no model call occurs until the click, one call occurs per click, and rapid duplicate clicks do not overlap.
+- [ ] Check prep uses only the selected source and linked Drive documents.
+- [ ] Disable the model or network and verify useful source-note fallback.
+- [ ] Close the sheet with Done or Escape and check keyboard focus returns to the brief.

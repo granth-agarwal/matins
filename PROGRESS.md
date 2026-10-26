@@ -81,3 +81,13 @@ Fallbacks: notification permission is requested explicitly from Settings in mile
 Manual checks: placement, focus, Spaces, notification permissions/actions and moved meetings in TESTING.md.
 
 Validation: 27 tests passed and development bundle built. Cancellation now removes every scheduled lead time, async notification registrations use generation IDs, and fallback actions restore the selected meeting from SQLite on relaunch.
+
+## Milestone 9
+
+Implemented: Prep me and Let's do it now run one explicit provider call with selected-source and attached-document context, show a note sheet, reject invented or oversized excerpts and fall back to source notes. Duplicate action calls are gated. Tests cover one-call behavior, context isolation, invalid notes and missing sources.
+
+Fallback: prep text is restricted to grounded short excerpts, matching the conservative validation used for synthesis. No source service is written to and no draft is sent.
+
+Manual checks: sticker interactions, real model output and sheet accessibility in TESTING.md.
+
+Validation: 29 tests passed; development app bundle built successfully. The temporary sticker placeholder is removed.

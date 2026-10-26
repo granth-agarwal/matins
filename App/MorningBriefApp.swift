@@ -27,6 +27,7 @@ final class MenuBarAgent: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var authTask: Task<Void, Never>?
     private var authWindow: NSWindow?
     private var running = false
+    private var actionRunning = false
     private let briefWindow = BriefWindowController()
     private var trigger: TriggerService?
     private var meetings: MeetingScheduler?
@@ -179,7 +180,16 @@ final class MenuBarAgent: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
     private func displayBrief(_ brief: BriefDocument) throws {
         guard let config, let store else { return }
-        try briefWindow.show(brief, config: config, store: store, retry: { [weak self] in self?.generateBrief() }, action: { _ in "Preparation actions arrive in the next milestone." })
+        try briefWindow.show(brief, config: config, store: store, retry: { [weak self] in self?.generateBrief() }, action: { [weak self] key in
+            guard let self, !self.actionRunning else { return "Preparation is already in progress." }
+            self.actionRunning = true
+            defer { self.actionRunning = false }
+            self.loadConfig()
+            do {
+                let records = try store.records()
+                return await StickerAction().run(key: key, records: records, provider: self.provider()).text
+            } catch { return "Source notes could not open. Refresh your brief." }
+        })
     }
     @objc private func showToday() {
         loadConfig()
