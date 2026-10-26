@@ -8,3 +8,11 @@
 - [ ] Quit and relaunch. Confirm data persists.
 - [ ] Edit name in config and reopen menu. Confirm greeting changes.
 - [ ] Enter invalid YAML, verify quiet error, correct YAML and reload.
+
+## 2. Authentication
+
+- [ ] Configure your own client IDs and use both sign-in menu actions.
+- [ ] Confirm Google consent grants only enabled read scopes, browser returns via loopback, and tokens survive app restart.
+- [ ] Revoke Google consent externally, then refresh. Confirm Sign in again appears.
+- [ ] Verify GitHub device code, cancellation and expiry. Restart and confirm token works.
+- [ ] Deny Keychain access and verify a quiet error with no token in logs or files.

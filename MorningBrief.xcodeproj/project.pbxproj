@@ -4,6 +4,8 @@
 	classes = {};
 	objectVersion = 56;
 	objects = {
+		A10000000000000000000005 = {isa = PBXBuildFile; productRef = A90000000000000000000003; };
+		A90000000000000000000003 = {isa = XCSwiftPackageProductDependency; package = A80000000000000000000003; productName = Auth; };
 		A10000000000000000000001 = {isa = PBXBuildFile; fileRef = A20000000000000000000001; };
 		A10000000000000000000002 = {isa = PBXBuildFile; fileRef = A20000000000000000000002; };
 		A10000000000000000000003 = {isa = PBXBuildFile; productRef = A90000000000000000000001; };
@@ -38,7 +40,7 @@
 			buildRules = ();
 			dependencies = ();
 			name = MorningBrief;
-			packageProductDependencies = (A90000000000000000000001, A90000000000000000000002);
+			packageProductDependencies = (A90000000000000000000001, A90000000000000000000002, A90000000000000000000003);
 			productName = MorningBrief;
 			productReference = A20000000000000000000004;
 			productType = "com.apple.product-type.application";
@@ -52,7 +54,7 @@
 		A50000000000000000000002 = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
-			files = (A10000000000000000000003, A10000000000000000000004);
+			files = (A10000000000000000000003, A10000000000000000000004, A10000000000000000000005);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		A50000000000000000000003 = {

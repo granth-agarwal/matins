@@ -7,13 +7,15 @@ A native macOS menu bar app. Milestone 1 implements the idle agent, YAML config,
 With a Swift 6.1 or later toolchain installed, run these commands from the repository root:
 
 ```sh
-swift test
+swift Tools/Test.swift
 swift Tools/Build.swift
 ```
 
 Open `build/Morning Brief.app` in Finder. A sunrise icon appears in the menu bar, with no Dock icon or initial window. Click it to see the ready status, open or reload config, open the data folder, or quit.
 
 Alternatively, open `MorningBrief.xcodeproj` in Xcode 16.3 or later, choose the MorningBrief scheme and My Mac, and run. The Xcode project and Swift package use the same app sources and local modules. The command line builder creates an app bundle and signs it locally for development. Release signing is a later milestone.
+
+The test helper supplies the Swift Testing plugin path when using command line tools. This avoids a Swift 6.4 build engine issue that fails to locate testing macros after dependency changes.
 
 ## Verify Milestone 1
 
@@ -41,4 +43,18 @@ The initial migration creates `accounts`, `sync_state`, and `meta`. Checkpoints 
 
 `App` contains the SwiftUI entry point, AppKit menu bar delegate, and local logger. `Packages/Config` owns typed configuration and application paths. `Packages/Store` owns the GRDB database. Local packages `Auth`, `Sync`, `Brief`, `Models`, `UI`, `Popup`, and `Trigger` reserve the remaining module boundaries. `Tests` checks config creation, editing, validation, and database reopen behavior.
 
-OAuth client configuration will be documented when Auth is implemented in Milestone 2.
+## Connecting accounts
+
+Create your own Google Desktop OAuth client and enable Calendar, Gmail and Drive APIs in its project. Add your Google account as a test user if the consent screen is in testing. Add a GitHub OAuth app with device flow enabled. Put only public client IDs in config:
+
+```yaml
+oauth:
+  google_client_id: YOUR_GOOGLE_CLIENT_ID
+  github_client_id: YOUR_GITHUB_CLIENT_ID
+```
+
+Use the menu sign-in actions. Google uses AppAuth 1.7.6 with a random loopback port, PKCE and offline consent. Its requested scopes read calendars, messages and meeting documents. Refresh tokens and serialized authorization state are stored only in Keychain. If your Google client requires a client secret, store it via Settings (available in milestone 10), never in YAML.
+
+GitHub requests `notifications`. Private issue search would require the broad writable `repo` scope on OAuth apps, so it is deliberately unavailable in v1. Device-flow polling occurs only during explicit sign-in and stops on success, expiry or cancellation; it is not background source polling.
+
+References: [Google desktop OAuth](https://developers.google.com/identity/protocols/oauth2/native-app), [AppAuth](https://github.com/openid/AppAuth-iOS), [GitHub device flow](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps).

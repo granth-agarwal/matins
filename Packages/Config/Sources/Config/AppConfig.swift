@@ -17,9 +17,19 @@ public struct AppConfig: Codable, Sendable {
     public let palette: Palette
     public let model: Model
     public let popups: Popups
+    public let oauth: OAuth?
+
+    public struct OAuth: Codable, Sendable {
+        public let googleClientID: String?
+        public let githubClientID: String?
+        enum CodingKeys: String, CodingKey {
+            case googleClientID = "google_client_id"
+            case githubClientID = "github_client_id"
+        }
+    }
 
     enum CodingKeys: String, CodingKey {
-        case name, signature, sources, gmail, sections, caps, labels, palette, model, popups
+        case name, signature, sources, gmail, sections, caps, labels, palette, model, popups, oauth
         case triggerAfter = "trigger_after"
         case latestShowTime = "latest_show_time"
         case skipDays = "skip_days"

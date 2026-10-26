@@ -1,4 +1,5 @@
 import AppKit
+import Auth
 import Config
 import OSLog
 import Store
@@ -15,6 +16,10 @@ struct MorningBriefApp: App {
 
 @MainActor
 final class MenuBarAgent: NSObject, NSApplicationDelegate, NSMenuDelegate {
+    private let google = GoogleAuth()
+    private let github = GitHubAuth()
+    private var authTask: Task<Void, Never>?
+    private var authWindow: NSWindow?
     private var item: NSStatusItem?
     private var paths: ApplicationPaths?
     private var log: LocalLog?
@@ -32,6 +37,9 @@ final class MenuBarAgent: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(NSMenuItem(title: "Morning Brief", action: nil, keyEquivalent: ""))
         menu.addItem(status)
         menu.addItem(.separator())
+        add("Sign in with Google", action: #selector(signInGoogle), to: menu)
+        add("Sign in with GitHub", action: #selector(signInGitHub), to: menu)
+        add("Cancel sign-in", action: #selector(cancelSignIn), to: menu)
         add("Open config…", action: #selector(openConfig), to: menu)
         add("Reload config", action: #selector(reload), to: menu)
         add("Open data folder", action: #selector(openDataFolder), to: menu)
@@ -74,7 +82,7 @@ final class MenuBarAgent: NSObject, NSApplicationDelegate, NSMenuDelegate {
         do {
             config = try ConfigLoader(url: paths.config).load()
             log?.record(.configLoaded)
-            status.title = store == nil ? "Database could not open. Restart to retry." : "Ready, \(config!.name)"
+            status.title = google.needsSignIn ? "Sign in again" : (store == nil ? "Database could not open. Restart to retry." : "Ready, \(config!.name)")
         } catch {
             log?.record(.configFailed)
             status.title = "Config could not load. Edit and reload."
@@ -84,6 +92,44 @@ final class MenuBarAgent: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func menuWillOpen(_ menu: NSMenu) { loadConfig() }
 
     @objc private func reload() { loadConfig() }
+
+    private func showAuthWindow(_ text: String) -> NSWindow {
+        let window = authWindow ?? NSWindow(contentRect: NSRect(x: 0, y: 0, width: 520, height: 280),
+            styleMask: [.titled, .closable], backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
+        window.title = "Connect your sources"
+        window.contentView = NSHostingView(rootView: Text(text).padding(32).frame(maxWidth: .infinity, maxHeight: .infinity))
+        window.center(); window.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true)
+        authWindow = window
+        return window
+    }
+    @objc private func signInGoogle() {
+        loadConfig()
+        let window = showAuthWindow("Calendar: read events and meeting links.\nGmail: read messages for your brief.\nDrive: read meeting notes and attachments.\nNothing is edited or sent. Tokens stay in Keychain.")
+        authTask?.cancel()
+        authTask = Task {
+            do {
+                let enabled = [config?.sources.calendar ?? false, config?.sources.gmail ?? false, config?.sources.drive ?? false]
+                let scopes = zip(GoogleAuth.scopes, enabled).compactMap { $0.1 ? $0.0 : nil }
+                guard !scopes.isEmpty else { status.title = "Enable a Google source in config."; return }
+                try await google.signIn(clientID: config?.oauth?.googleClientID, window: window, scopes: scopes)
+                status.title = "Google connected"; window.close()
+            } catch { status.title = (error as? AuthError)?.errorDescription ?? "Sign-in could not finish." }
+        }
+    }
+    @objc private func signInGitHub() {
+        loadConfig(); authTask?.cancel()
+        authTask = Task {
+            do {
+                let code = try await github.start(clientID: config?.oauth?.githubClientID)
+                let window = showAuthWindow("Enter this code on GitHub:\n\(code.user_code)\n\nRead notifications and public issues. Nothing is edited.")
+                if let url = URL(string: code.verification_uri), url.scheme == "https", url.host == "github.com" { NSWorkspace.shared.open(url) }
+                try await github.finish(code, clientID: config?.oauth?.githubClientID ?? "")
+                status.title = "GitHub connected"; window.close()
+            } catch { status.title = (error as? AuthError)?.errorDescription ?? "Sign-in could not finish." }
+        }
+    }
+    @objc private func cancelSignIn() { authTask?.cancel(); google.cancel(); authWindow?.close() }
 
     @objc private func openConfig() {
         guard let paths else { return }
