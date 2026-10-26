@@ -50,3 +50,16 @@
 - [ ] Enable Reduce Motion before opening; verify entrance and glow animations stop.
 - [ ] Check all seven palettes, same-day reopen and pinned selection.
 - [ ] Inspect schedule selection and Join visibility at 15 minutes before start.
+
+## 7. Daily trigger
+
+- [ ] Cold launch while unlocked: open the menu once to establish unlock state, or lock and unlock; confirm exactly one eligible daily run.
+- [ ] Wake before trigger time, remain awake through it, and verify one window at the configured time.
+- [ ] Wake after trigger time but before latest show time; verify one brief.
+- [ ] Wake with lid closed on power and an external display, and with external display only.
+- [ ] Wake during a call; verify the brief once, then no repeated sync on further wake events.
+- [ ] Lock the session while sync is running; confirm it does not reveal the window until an eligible unlock.
+- [ ] Wake after latest show time and on skip days; confirm no automatic brief.
+- [ ] Change timezone, move the clock forward/back, and cross DST; verify local-date rules and no duplicate daily model call.
+- [ ] Open Show today's brief at any time; confirm it does not update lastShown or make a model call.
+- [ ] Quit and restart after a successful daily display; verify no automatic second run.

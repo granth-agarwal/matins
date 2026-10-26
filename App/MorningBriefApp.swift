@@ -7,6 +7,7 @@ import Sync
 import Models
 import Brief
 import UI
+import Trigger
 import SwiftUI
 
 @main
@@ -26,6 +27,7 @@ final class MenuBarAgent: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var authWindow: NSWindow?
     private var running = false
     private let briefWindow = BriefWindowController()
+    private var trigger: TriggerService?
     private var item: NSStatusItem?
     private var paths: ApplicationPaths?
     private var log: LocalLog?
@@ -80,6 +82,13 @@ final class MenuBarAgent: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 log.record(.storeFailed)
             }
             loadConfig()
+            if let store {
+                let trigger = TriggerService(store: store, configuration: { [weak self] in self?.config },
+                    run: { [weak self] in await self?.runDaily() ?? false },
+                    failure: { [weak self] in self?.status.title = "Daily state could not save. Try again." })
+                self.trigger = trigger
+                trigger.start()
+            }
         } catch {
             status.title = "App data folder could not open"
             Logger(subsystem: "com.granth.morningbrief", category: "lifecycle")
@@ -99,9 +108,32 @@ final class MenuBarAgent: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
-    func menuWillOpen(_ menu: NSMenu) { loadConfig() }
+    func menuWillOpen(_ menu: NSMenu) { trigger?.userInteracted(); loadConfig() }
 
-    @objc private func reload() { loadConfig() }
+    @objc private func reload() { loadConfig(); trigger?.evaluate() }
+
+    private func runDaily() async -> Bool {
+        guard !running, let store else { return false }
+        running = true
+        defer { running = false }
+        do {
+            let day = Dates.day(Date())
+            let brief: BriefDocument
+            if let data = try store.brief(date: day) {
+                brief = try JSONDecoder().decode(BriefDocument.self, from: data)
+            } else {
+                if try store.meta("dailyAttempt") == day {
+                    brief = BriefGenerator.fallback(records: try store.records(), now: Date(), succeeded: [], failed: [])
+                } else {
+                    try store.setMeta("dailyAttempt", day)
+                    brief = try await makeBrief().document
+                }
+            }
+            guard trigger?.eligible() == true else { return false }
+            try displayBrief(brief)
+            return briefWindow.isVisible
+        } catch { status.title = "Daily brief could not open. Use Refresh to retry."; return false }
+    }
 
     private func provider() -> any ModelProvider {
         guard let config else { return UnavailableProvider() }
@@ -161,8 +193,10 @@ final class MenuBarAgent: NSObject, NSApplicationDelegate, NSMenuDelegate {
         return await SyncCoordinator.run(jobs)
     }
     @objc private func refreshSources() {
+        guard !running else { return }; running = true
         loadConfig()
         Task {
+            defer { running = false }
             status.title = "Syncing sources"
             let result = await syncSources()
             status.title = google.needsSignIn ? "Sign in again" : (result.failed.isEmpty ? "Sources synced" : "Some sources could not sync. Tap to retry.")
@@ -170,8 +204,9 @@ final class MenuBarAgent: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func refreshCalendar() {
-        guard let store else { return }
+        guard let store, !running else { return }; running = true
         Task {
+            defer { running = false }
             do {
                 try await CalendarSync(api: API(token: google.accessToken()), store: store).sync()
                 let events = try store.records(source: .calendar).filter { $0.start.map { Calendar.current.isDateInToday($0) } ?? false }
@@ -232,5 +267,5 @@ final class MenuBarAgent: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func quit() { NSApp.terminate(nil) }
 
-    func applicationWillTerminate(_ notification: Notification) { log?.record(.stopped) }
+    func applicationWillTerminate(_ notification: Notification) { trigger?.stop(); log?.record(.stopped) }
 }

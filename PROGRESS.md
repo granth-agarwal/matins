@@ -61,3 +61,13 @@ Fallbacks: reference artifact cannot be fetched in this environment and no signa
 Manual checks: pixel review, real font rendering, light/dark system appearance, keyboard/VoiceOver and Reduce Motion in TESTING.md.
 
 Validation: 21 tests passed and development bundle built. The installed macOS 27 SDK shadows the legacy State property wrapper with a macro absent from its CLI tools; a type alias selects the compatible property wrapper without changing the deployment target.
+
+## Milestone 7
+
+Implemented: pure local-time trigger rules, wake/display/session event observers, one nonrepeating timer, timezone/clock rescheduling, persistent lastShown after actual display, concurrent-run exclusion and a daily attempt guard. Cached output is reused if the machine locks during generation. Manual Show does not touch lastShown or run the model. Trigger tests cover all gates, local dates and DST.
+
+Fallback: macOS exposes session switching but no documented public lock-state query. Lock/unlock distributed notifications are observed with a conservative unknown state on cold launch. With require_unlocked enabled, the first automatic run waits for an observed unlock or menu interaction. No private lock-state fields are assumed. Hardware sleep, loginwindow notifications and display configurations require manual checks.
+
+Manual checks: wake/lock/call/external display/clock matrix in TESTING.md.
+
+Validation: all 24 tests passed; development app bundle built successfully.

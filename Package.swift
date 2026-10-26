@@ -9,6 +9,7 @@ let package = Package(
         .package(path: "Packages/Auth"),
         .package(path: "Packages/Brief"),
         .package(path: "Packages/UI"),
+        .package(path: "Packages/Trigger"),
         .package(path: "Packages/Models"),
         .package(path: "Packages/Sync"),
         .package(path: "Packages/Config"),
@@ -17,11 +18,11 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "MorningBrief",
-            dependencies: ["Config", "Store", "Auth", "Models", "Sync", "Brief", "UI"],
+            dependencies: ["Config", "Store", "Auth", "Models", "Sync", "Brief", "UI", "Trigger"],
             path: "App",
             exclude: ["Info.plist"]
         ),
-        .testTarget(name: "SkeletonTests", dependencies: ["Config", "Store", "Auth", "Models", "Sync", "Brief", "UI"], resources: [.copy("Fixtures")])
+        .testTarget(name: "SkeletonTests", dependencies: ["Config", "Store", "Auth", "Models", "Sync", "Brief", "UI", "Trigger"], resources: [.copy("Fixtures")])
     ],
     swiftLanguageModes: [.v6]
 )
