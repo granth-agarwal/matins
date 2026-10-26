@@ -40,3 +40,13 @@
 - [ ] Configure Anthropic explicitly with a valid model ID and Keychain key in Settings; verify only that provider receives data.
 - [ ] Test invalid key, offline mode and provider failure; verify the brief still appears from source records.
 - [ ] Review all generated text and links against your source records.
+
+## 6. Brief window
+
+- [ ] Compare against the reference artifact at 1100 x 900 in light and dark system appearance.
+- [ ] Verify all three bundled font families and your signature path/text.
+- [ ] Check a task, close and reopen, then restart; verify persistence.
+- [ ] Test j/k, space, e, Tab, VoiceOver labels and Escape.
+- [ ] Enable Reduce Motion before opening; verify entrance and glow animations stop.
+- [ ] Check all seven palettes, same-day reopen and pinned selection.
+- [ ] Inspect schedule selection and Join visibility at 15 minutes before start.

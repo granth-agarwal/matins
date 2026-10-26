@@ -51,3 +51,13 @@ Fallbacks: the hard one-model-call limit takes precedence over per-item model su
 Manual checks: actual on-device availability, explicit cloud consent/configuration, offline/model failures and output review.
 
 Validation: 19 tests passed, including the 20-day fixture checker. Release configuration development bundle built successfully.
+
+## Milestone 6
+
+Implemented: dark editorial window, scrolling hero, seven daily palettes with same-day persistence and pinning, OFL Fraunces/Inter/IBM Plex Mono bundled with licenses, text or local image signature, focus and prep stickers, persistent checkboxes, updates, selectable schedule, source links, empty states, Escape and j/k/space/e navigation, Reduce Motion guards and staggered entrance.
+
+Fallbacks: reference artifact cannot be fetched in this environment and no signature image exists, so the written specification and configured name are used. Pixel comparison is pending. Custom palette lists remain unsupported (built-in palettes and pinning work). The meeting panel stacks beneath its time list at current widths. Sticker content is temporarily stubbed until milestone 9, per build order. Explicitly selected cloud provider setup remains in milestone 10.
+
+Manual checks: pixel review, real font rendering, light/dark system appearance, keyboard/VoiceOver and Reduce Motion in TESTING.md.
+
+Validation: 21 tests passed and development bundle built. The installed macOS 27 SDK shadows the legacy State property wrapper with a macro absent from its CLI tools; a type alias selects the compatible property wrapper without changing the deployment target.

@@ -6,6 +6,7 @@ import Store
 import Sync
 import Models
 import Brief
+import UI
 import SwiftUI
 
 @main
@@ -24,6 +25,7 @@ final class MenuBarAgent: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var authTask: Task<Void, Never>?
     private var authWindow: NSWindow?
     private var running = false
+    private let briefWindow = BriefWindowController()
     private var item: NSStatusItem?
     private var paths: ApplicationPaths?
     private var log: LocalLog?
@@ -47,6 +49,7 @@ final class MenuBarAgent: NSObject, NSApplicationDelegate, NSMenuDelegate {
         add("Refresh Calendar", action: #selector(refreshCalendar), to: menu)
         add("Refresh sources", action: #selector(refreshSources), to: menu)
         add("Generate brief", action: #selector(generateBrief), to: menu)
+        add("Show today's brief", action: #selector(showToday), to: menu)
         add("Open config…", action: #selector(openConfig), to: menu)
         add("Reload config", action: #selector(reload), to: menu)
         add("Open data folder", action: #selector(openDataFolder), to: menu)
@@ -123,10 +126,24 @@ final class MenuBarAgent: NSObject, NSApplicationDelegate, NSMenuDelegate {
             defer { running = false }
             do {
                 let result = try await makeBrief()
-                _ = showAuthWindow(result.document.greeting_line + "\n" + result.document.todos.map(\.title).joined(separator: "\n"))
+                try displayBrief(result.document)
                 status.title = result.usedFallback ? "Brief ready using source records" : "Brief ready"
             } catch { status.title = "Brief could not be saved. Try again." }
         }
+    }
+    private func displayBrief(_ brief: BriefDocument) throws {
+        guard let config, let store else { return }
+        try briefWindow.show(brief, config: config, store: store, retry: { [weak self] in self?.generateBrief() }, action: { _ in "Preparation actions arrive in the next milestone." })
+    }
+    @objc private func showToday() {
+        loadConfig()
+        do {
+            guard let store else { return }
+            let brief: BriefDocument
+            if let data = try store.brief(date: Dates.day(Date())) { brief = try JSONDecoder().decode(BriefDocument.self, from: data) }
+            else { brief = BriefGenerator.fallback(records: try store.records(), now: Date(), succeeded: [], failed: []) }
+            try displayBrief(brief)
+        } catch { status.title = "Brief could not open. Try again." }
     }
 
     private func syncSources() async -> SyncOutcome {

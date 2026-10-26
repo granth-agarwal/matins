@@ -39,6 +39,9 @@ public final class BriefStore: Sendable {
         migrator.registerMigration("briefs_v3") { db in
             try db.execute(sql: "CREATE TABLE briefs (date TEXT PRIMARY KEY, payload BLOB NOT NULL, created_at DOUBLE NOT NULL)")
         }
+        migrator.registerMigration("tasks_v4") { db in
+            try db.execute(sql: "CREATE TABLE tasks (id TEXT PRIMARY KEY, title TEXT NOT NULL, checked INTEGER NOT NULL DEFAULT 0, created_at DOUBLE NOT NULL, updated_at DOUBLE NOT NULL)")
+        }
         try migrator.migrate(database)
     }
 
@@ -92,6 +95,14 @@ extension BriefStore {
     }
     public func brief(date: String) throws -> Data? {
         try database.read { try Data.fetchOne($0, sql: "SELECT payload FROM briefs WHERE date=?", arguments: [date]) }
+    }
+    public func setTask(id: String, title: String, checked: Bool, now: Date = Date()) throws {
+        try database.write { try $0.execute(sql: "INSERT INTO tasks(id,title,checked,created_at,updated_at) VALUES (?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET title=excluded.title,checked=excluded.checked,updated_at=excluded.updated_at", arguments: [id, title, checked, now.timeIntervalSince1970, now.timeIntervalSince1970]) }
+    }
+    public func taskStates() throws -> [String: Bool] {
+        try database.read { db in
+            Dictionary(uniqueKeysWithValues: try Row.fetchAll(db, sql: "SELECT id,checked FROM tasks").map { ($0["id"] as String, $0["checked"] as Bool) })
+        }
     }
 }
 public enum StoreError: Error { case wrongScope }
