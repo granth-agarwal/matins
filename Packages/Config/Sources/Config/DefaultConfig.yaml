@@ -1,0 +1,15 @@
+name: Granth
+signature: granth-signature.png
+trigger_after: "09:00"
+latest_show_time: "16:00"
+skip_days: [sat, sun]
+require_unlocked: true
+retention_days: 7
+sources: { calendar: true, gmail: true, drive: true, github: true, chat: false }
+gmail: { exclude_categories: [promotions, social], vip: [], ignore: [] }
+sections: [focus, todos, updates, schedule]
+caps: { todos: 5, updates: 4, replies: 5 }
+labels: { meeting: "#AFC4A4", reply: "#D8BF93", pr: "#BBB1D8", deadline: "#D8A89A" }
+palette: { mode: auto, pinned: null, list: default }
+model: { provider: apple_on_device, synthesis: anthropic }
+popups: { enabled: true, minutes_before: [10, 2], quiet_hours: [], position: bottom_left }
