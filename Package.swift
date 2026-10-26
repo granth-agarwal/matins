@@ -7,17 +7,19 @@ let package = Package(
     products: [.executable(name: "MorningBrief", targets: ["MorningBrief"])],
     dependencies: [
         .package(path: "Packages/Auth"),
+        .package(path: "Packages/Models"),
+        .package(path: "Packages/Sync"),
         .package(path: "Packages/Config"),
         .package(path: "Packages/Store")
     ],
     targets: [
         .executableTarget(
             name: "MorningBrief",
-            dependencies: ["Config", "Store", "Auth"],
+            dependencies: ["Config", "Store", "Auth", "Models", "Sync"],
             path: "App",
             exclude: ["Info.plist"]
         ),
-        .testTarget(name: "SkeletonTests", dependencies: ["Config", "Store", "Auth"])
+        .testTarget(name: "SkeletonTests", dependencies: ["Config", "Store", "Auth", "Models", "Sync"])
     ],
     swiftLanguageModes: [.v6]
 )

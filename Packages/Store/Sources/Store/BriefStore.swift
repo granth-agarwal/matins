@@ -1,8 +1,9 @@
 import Foundation
 import GRDB
+import Models
 
 public final class BriefStore: Sendable {
-    private let database: DatabaseQueue
+    let database: DatabaseQueue
 
     public init(url: URL) throws {
         var configuration = Configuration()
@@ -30,6 +31,11 @@ public final class BriefStore: Sendable {
             }
             try db.execute(sql: "INSERT INTO meta (key, value) VALUES (?, ?)", arguments: ["schema", "skeleton_v1"])
         }
+        migrator.registerMigration("source_records_v2") { db in
+            for table in ["events", "threads", "drive_files", "github_items"] {
+                try db.execute(sql: "CREATE TABLE \(table) (account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE, scope TEXT NOT NULL, id TEXT NOT NULL, payload BLOB NOT NULL, updated_at DOUBLE NOT NULL, PRIMARY KEY(account_id, scope, id))")
+            }
+        }
         try migrator.migrate(database)
     }
 
@@ -39,3 +45,44 @@ public final class BriefStore: Sendable {
         }
     }
 }
+
+extension BriefStore {
+    private func table(_ source: Source) -> String {
+        switch source { case .calendar: "events"; case .gmail: "threads"; case .drive: "drive_files"; case .github: "github_items" }
+    }
+    public func checkpoint(account: String, source: Source, scope: String = "") throws -> String? {
+        try database.read { db in
+            try String.fetchOne(db, sql: "SELECT checkpoint FROM sync_state WHERE account_id=? AND source=? AND scope=?", arguments: [account, source.rawValue, scope])
+        }
+    }
+    public func commit(account: String, source: Source, scope: String = "", records: [SourceRecord], deleted: [String] = [], checkpoint: String?, replace: Bool = false) throws {
+        let table = table(source)
+        try database.write { db in
+            try db.execute(sql: "INSERT OR IGNORE INTO accounts(id,provider) VALUES (?,?)", arguments: [account, source == .github ? "github" : "google"])
+            if replace { try db.execute(sql: "DELETE FROM \(table) WHERE account_id=? AND scope=?", arguments: [account, scope]) }
+            for id in deleted { try db.execute(sql: "DELETE FROM \(table) WHERE account_id=? AND scope=? AND id=?", arguments: [account, scope, id]) }
+            for record in records {
+                guard record.accountID == account, record.source == source, record.scope == scope else { throw StoreError.wrongScope }
+                let data = try JSONEncoder().encode(record)
+                try db.execute(sql: "INSERT INTO \(table)(account_id,scope,id,payload,updated_at) VALUES (?,?,?,?,?) ON CONFLICT(account_id,scope,id) DO UPDATE SET payload=excluded.payload,updated_at=excluded.updated_at", arguments: [account, scope, record.id, data, record.updated.timeIntervalSince1970])
+            }
+            if let checkpoint {
+                try db.execute(sql: "INSERT INTO sync_state(account_id,source,scope,checkpoint,updated_at) VALUES (?,?,?,?,?) ON CONFLICT(account_id,source,scope) DO UPDATE SET checkpoint=excluded.checkpoint,updated_at=excluded.updated_at", arguments: [account, source.rawValue, scope, checkpoint, Date()])
+            }
+        }
+    }
+    public func records(source: Source? = nil) throws -> [SourceRecord] {
+        try database.read { db in
+            try (source.map { [$0] } ?? Source.allCases).flatMap { source in
+                try Data.fetchAll(db, sql: "SELECT payload FROM \(table(source))").map { try JSONDecoder().decode(SourceRecord.self, from: $0) }
+            }
+        }
+    }
+    public func meta(_ key: String) throws -> String? {
+        try database.read { try String.fetchOne($0, sql: "SELECT value FROM meta WHERE key=?", arguments: [key]) }
+    }
+    public func setMeta(_ key: String, _ value: String) throws {
+        try database.write { try $0.execute(sql: "INSERT INTO meta(key,value) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", arguments: [key, value]) }
+    }
+}
+public enum StoreError: Error { case wrongScope }

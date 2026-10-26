@@ -3,6 +3,8 @@ import Auth
 import Config
 import OSLog
 import Store
+import Sync
+import Models
 import SwiftUI
 
 @main
@@ -40,6 +42,7 @@ final class MenuBarAgent: NSObject, NSApplicationDelegate, NSMenuDelegate {
         add("Sign in with Google", action: #selector(signInGoogle), to: menu)
         add("Sign in with GitHub", action: #selector(signInGitHub), to: menu)
         add("Cancel sign-in", action: #selector(cancelSignIn), to: menu)
+        add("Refresh Calendar", action: #selector(refreshCalendar), to: menu)
         add("Open config…", action: #selector(openConfig), to: menu)
         add("Reload config", action: #selector(reload), to: menu)
         add("Open data folder", action: #selector(openDataFolder), to: menu)
@@ -92,6 +95,19 @@ final class MenuBarAgent: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func menuWillOpen(_ menu: NSMenu) { loadConfig() }
 
     @objc private func reload() { loadConfig() }
+
+    @objc private func refreshCalendar() {
+        guard let store else { return }
+        Task {
+            do {
+                try await CalendarSync(api: API(token: google.accessToken()), store: store).sync()
+                let events = try store.records(source: .calendar).filter { $0.start.map { Calendar.current.isDateInToday($0) } ?? false }
+                let lines = events.sorted { ($0.start ?? .distantPast) < ($1.start ?? .distantPast) }.map { "\($0.start!.formatted(date: .omitted, time: .shortened))  \($0.title)" }
+                _ = showAuthWindow(lines.isEmpty ? "No meetings today." : lines.joined(separator: "\n"))
+                status.title = "Calendar synced"
+            } catch { status.title = google.needsSignIn ? "Sign in again" : "Calendar could not sync. Tap to retry." }
+        }
+    }
 
     private func showAuthWindow(_ text: String) -> NSWindow {
         let window = authWindow ?? NSWindow(contentRect: NSRect(x: 0, y: 0, width: 520, height: 280),

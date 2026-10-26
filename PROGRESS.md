@@ -21,3 +21,13 @@ Fallback: GitHub private issue searches are excluded because OAuth offers no rea
 Manual checks: credentialed sign-in, restart, consent revocation and Keychain denial in TESTING.md. These cannot be verified without user accounts.
 
 Validation: 5 tests passed. Swift 6.4 command line tools omit the Testing macro search path; Tools/Test.swift supplies it. The native engine was also tried but cannot locate Testing.framework on this installation. The app builds with the default engine.
+
+## Milestone 3
+
+Implemented: typed Calendar responses, time zones and all-day dates, pagination, sync tokens, 410 replacement, cancelled/declined removal, source/account-scoped atomic SQLite commits and a manual Calendar refresh showing today's stored events. Tests cover pagination, rollback, token expiry, cancellation and all-day parsing.
+
+Fallback: the menu currently syncs the primary calendar; the engine accepts any calendar ID and keeps separate checkpoints. Events are displayed locally instead of printed into a log to avoid leaking calendar contents. The initial window is yesterday through seven days ahead, as specified; an unchanged event beyond that initial window may require a later full sync when the window advances. This will be addressed in the daily-run integration.
+
+Manual checks: credentialed incremental refresh and recurring-event cases in TESTING.md.
+
+Validation: 9 tests passed, including page failure leaving no rows or checkpoint and 410 recovery. Development bundle build passed before commit.

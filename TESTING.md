@@ -16,3 +16,10 @@
 - [ ] Revoke Google consent externally, then refresh. Confirm Sign in again appears.
 - [ ] Verify GitHub device code, cancellation and expiry. Restart and confirm token works.
 - [ ] Deny Keychain access and verify a quiet error with no token in logs or files.
+
+## 3. Calendar
+
+- [ ] Refresh Calendar and compare today's stored events with Google Calendar.
+- [ ] Refresh again and verify the saved sync token advances using incremental changes.
+- [ ] Move, decline and cancel events, including a recurring exception; refresh and compare.
+- [ ] Check all-day events across a timezone change and DST boundary.
